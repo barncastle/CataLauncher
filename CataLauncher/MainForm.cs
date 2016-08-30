@@ -134,7 +134,7 @@ namespace CataLauncher
 
         }
 
-        private delegate void UpdateProgress(int percent, long bytesReceived, long totalBytesReceive);
+        private delegate void UpdateProgress(double percent, long bytesReceived, long totalBytesReceive);
         private delegate void MakeVisibleInvisible(bool visible);
 
         private readonly string tempPath = Path.GetTempFileName();
@@ -268,10 +268,8 @@ namespace CataLauncher
         private void startDownloadBackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
         {
             WebClient client = new WebClient();
-
             client.DownloadFileCompleted += new AsyncCompletedEventHandler(client_DownloadFileCompleted);
             client.DownloadProgressChanged += new DownloadProgressChangedEventHandler(client_DownloadProgressChanged);
-
             client.DownloadFileAsync(new Uri(Settings.Default.patchDownloadURL), tempPath);
         }
 
@@ -280,7 +278,7 @@ namespace CataLauncher
             this.Invoke(new UpdateProgress(UpdateProgressbar), new object[] { e.ProgressPercentage, e.BytesReceived, e.TotalBytesToReceive });
         }
 
-        private void UpdateProgressbar(int percent, long bytesReceived, long totalBytesToReceive)
+        private void UpdateProgressbar(double percent, long bytesReceived, long totalBytesToReceive)
         {
 
             string received = String.Empty;
@@ -373,8 +371,7 @@ namespace CataLauncher
                         if (proceed)
                         {
 
-                            WebClient downloadPatches = new WebClient();
-
+                            CookieWebClient downloadPatches = new CookieWebClient();
                             downloadPatches.DownloadFileCompleted += new AsyncCompletedEventHandler(downloadPatches_DownloadFileCompleted);
                             downloadPatches.DownloadProgressChanged += new DownloadProgressChangedEventHandler(downloadPatches_DownloadProgressChanged);
 
@@ -390,7 +387,7 @@ namespace CataLauncher
 
 
                             if (!anyDownloads)
-                                downloadPatches.DownloadFileAsync(new Uri(ex[0]), path, obj);
+                                downloadPatches.DownloadWebFileAsync(new Uri(ex[0]), path, obj);
                             else
                                 patchQueue.Enqueue(pfi);
 
@@ -414,12 +411,10 @@ namespace CataLauncher
             {
                 PatchFileInfo pfi = patchQueue.Dequeue();
 
-                WebClient downloadPatches = new WebClient();
-
+                CookieWebClient downloadPatches = new CookieWebClient();
                 downloadPatches.DownloadFileCompleted += new AsyncCompletedEventHandler(downloadPatches_DownloadFileCompleted);
                 downloadPatches.DownloadProgressChanged += new DownloadProgressChangedEventHandler(downloadPatches_DownloadProgressChanged);
-
-                downloadPatches.DownloadFileAsync(new Uri(pfi.url), pfi.file);
+                downloadPatches.DownloadWebFileAsync(new Uri(pfi.url), pfi.file);
 
             }
             else
@@ -446,20 +441,14 @@ namespace CataLauncher
 
         private void downloadPatches_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
-            this.Invoke(new UpdateProgress(UpdateProgressbar), new object[] { e.ProgressPercentage, (int)e.BytesReceived, (int)e.TotalBytesToReceive });
-        }
-
-        private class PatchFileInfo
-        {
-            public string url { get; set; }
-            public string file { get; set; }
-            public string md5hash { get; set; }
-
-            public PatchFileInfo(string URL, string File)
+            if (e.TotalBytesToReceive == -1 && e.UserState.GetType() == typeof(PatchFileInfo))
             {
-                url = URL;
-                file = File;
+                PatchFileInfo patch = (PatchFileInfo)e.UserState;
+                double percent = ((double)e.BytesReceived / (double)patch.totalbytes) * 100.0;
+                this.Invoke(new UpdateProgress(UpdateProgressbar), new object[] { percent, (int)e.BytesReceived, (int)patch.totalbytes });
             }
+            else
+                this.Invoke(new UpdateProgress(UpdateProgressbar), new object[] { e.ProgressPercentage, (int)e.BytesReceived, (int)e.TotalBytesToReceive });
         }
 
         private void checkServerStatusBackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
