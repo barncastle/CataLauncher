@@ -55,6 +55,9 @@
     <Compile Include="CataButton.Designer.cs">
       <DependentUpon>CataButton.cs</DependentUpon>
     </Compile>
+    <Compile Include="CookieWebClient.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Credits.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -85,6 +88,7 @@
     <Compile Include="MenuBar.Designer.cs">
       <DependentUpon>MenuBar.cs</DependentUpon>
     </Compile>
+    <Compile Include="PatchFileInfo.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SettingsForm.cs">
